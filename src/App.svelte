@@ -1,5 +1,5 @@
 <script>
-  import Grid from "./lib/Grid.svelte";
+  import Grid from "$components/Grid/Grid.svelte";
 </script>
 
 <main>

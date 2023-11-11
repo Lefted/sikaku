@@ -23,6 +23,7 @@ export default defineConfig(async () => ({
   resolve: {
     alias: {
       $lib: fileURLToPath(new URL("./src/lib", import.meta.url)),
+      $components: fileURLToPath(new URL("./src/components", import.meta.url)),
     },
   },
 }));

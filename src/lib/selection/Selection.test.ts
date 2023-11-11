@@ -1,4 +1,4 @@
-import { Selection } from "$lib/Selection";
+import { Selection } from "$lib/selection/Selection";
 import { nameOf } from "test/name-of";
 import { describe, expect, it } from "vitest";
 

@@ -1,4 +1,4 @@
-import { Selection } from "$lib/Selection";
+import { Selection } from "$lib/selection/Selection";
 
 export class SelectionState {
   selections: Selection[] = [];

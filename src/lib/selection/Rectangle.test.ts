@@ -1,4 +1,4 @@
-import { Rectangle } from "$lib/Rectangle";
+import { Rectangle } from "$lib/selection/Rectangle";
 import { nameOf } from "test/name-of";
 import { describe, expect, it } from "vitest";
 

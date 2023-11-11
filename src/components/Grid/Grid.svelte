@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { MouseState } from "$lib/MouseState";
-  import { SelectionState } from "$lib/SelectionState";
+  import { MouseState } from "$lib/state/MouseState";
+  import { SelectionState } from "$lib/state/SelectionState";
   import { onMount } from "svelte";
 
   const GRID_SIZE = 9;

@@ -1,4 +1,4 @@
-import { Rectangle } from "$lib/Rectangle";
+import { Rectangle } from "$lib/selection/Rectangle";
 
 export class Selection extends Rectangle {
   constructor(

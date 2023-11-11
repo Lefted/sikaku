@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { MouseState } from "$lib/MouseState";
+  import { SelectionState } from "$lib/SelectionState";
   import { onMount } from "svelte";
-  import { Selection } from "$lib/Selection";
 
   const GRID_SIZE = 9;
   const CANVAS_SIZE = 540;
@@ -9,9 +10,9 @@
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
 
-  const currentSelection = new Selection(0, 0, 0, 0, 5);
+  let mouseState: MouseState;
+  const selectionState = new SelectionState();
 
-  const mousePos = { x: 0, y: 0 };
   const canvasPos = {
     x: 0,
     y: 0,
@@ -19,6 +20,7 @@
 
   onMount(() => {
     canvas = document.getElementById("canvas") as HTMLCanvasElement;
+    mouseState = new MouseState(canvas);
     ctx = getCanvasContext(canvas);
 
     drawGrid();
@@ -36,44 +38,26 @@
   }
 
   function onMouseMove(e: MouseEvent) {
-    updateMousePos(e);
-    if (e.buttons === 1) {
-      updateSelectionPos(e);
+    mouseState.updateMouseState(e);
+
+    if (mouseState.isLeftPressed()) {
+      selectionState.updateSelectionPos(...mouseState.getMousePos());
     }
 
-    draw(e);
+    draw();
   }
 
-  function updateMousePos(e: MouseEvent) {
-    [mousePos.x, mousePos.y] = getMousePos(canvas, e);
-  }
-
-  function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent) {
-    const rect = canvas.getBoundingClientRect(), // abs. size of element
-      scaleX = canvas.width / rect.width, // relationship bitmap vs. element for X
-      scaleY = canvas.height / rect.height; // relationship bitmap vs. element for Y
-
-    return [
-      (evt.clientX - rect.left) * scaleX,
-      (evt.clientY - rect.top) * scaleY,
-    ];
-  }
-
-  function updateSelectionPos(e: MouseEvent) {
-    currentSelection.expand(mousePos.x, mousePos.y);
-  }
-
-  function onMouseDown(e: MouseEvent) {
+  function onMouseDown(_: MouseEvent) {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     updateCanvasPos();
 
-    initSelectionPositions(e);
+    selectionState.initCurrentSelection(...mouseState.getMousePos());
 
-    draw(e);
+    draw();
   }
 
   function updateCanvasPos() {
-    [canvasPos.x, canvasPos.y] = getCanvasPos(ctx, mousePos.x, mousePos.y);
+    [canvasPos.x, canvasPos.y] = getCanvasPos(ctx, ...mouseState.getMousePos());
   }
 
   function getCanvasPos(
@@ -88,27 +72,22 @@
     return [x, y];
   }
 
-  function initSelectionPositions(e: MouseEvent) {
-    currentSelection.setStartPoint(mousePos.x, mousePos.y);
-    currentSelection.setEndPoint(mousePos.x, mousePos.y);
-  }
-
   function onMouseUp(e: MouseEvent) {
+    mouseState.updateMouseState(e); // needed to update mouseState.isLeftPressed() in time
+
+    selectionState.confirmSelection(CANVAS_SIZE, GRID_SIZE);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    currentSelection.snapToGrid(CANVAS_SIZE, GRID_SIZE);
-
-    draw(e);
+    draw();
   }
 
   // https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
   // https://jsfiddle.net/mattdeeds/yqLvza57/37/
-  function draw(e: MouseEvent) {
+  function draw() {
     ctx.resetTransform();
 
     drawGrid();
-    if (e.buttons === 1) drawLine();
-    else drawSelection();
+    drawSelections();
+    if (mouseState.isLeftPressed()) drawLine();
   }
 
   function drawGrid() {
@@ -139,8 +118,8 @@
     ctx.stroke();
   }
 
-  function drawSelection() {
-    currentSelection.draw(ctx);
+  function drawSelections() {
+    selectionState.draw(ctx);
   }
 </script>
 

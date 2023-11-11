@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { Rectangle } from "$lib/SelectionState";
   import { onMount } from "svelte";
+  import { Selection } from "$lib/Selection";
 
   const GRID_SIZE = 9;
   const CANVAS_SIZE = 540;
@@ -9,17 +9,13 @@
   let canvas: HTMLCanvasElement;
   let ctx: CanvasRenderingContext2D;
 
-  // TODO
-  const rect = new Rectangle(0, 0, 0, 0);
+  const currentSelection = new Selection(0, 0, 0, 0, 5);
 
   const mousePos = { x: 0, y: 0 };
   const canvasPos = {
     x: 0,
     y: 0,
   };
-
-  const selectionStartPos = { x: 0, y: 0 };
-  const selectionEndPos = { x: 0, y: 0 };
 
   onMount(() => {
     canvas = document.getElementById("canvas") as HTMLCanvasElement;
@@ -29,7 +25,6 @@
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mousedown", onMouseDown);
     document.addEventListener("mouseup", onMouseUp);
-    // document.addEventListener("mouseenter", setPosition);
   });
 
   function getCanvasContext(canvas: HTMLCanvasElement) {
@@ -42,25 +37,15 @@
 
   function onMouseMove(e: MouseEvent) {
     updateMousePos(e);
-    draw(e);
     if (e.buttons === 1) {
       updateSelectionPos(e);
     }
-  }
 
-  function onMouseUp(e: MouseEvent) {
-    updateMousePos(e);
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     draw(e);
   }
 
-  function onMouseDown(e: MouseEvent) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    updateMousePos(e);
-    updateCanvasPos();
-    initSelectionPositions(e);
-    draw(e);
+  function updateMousePos(e: MouseEvent) {
+    [mousePos.x, mousePos.y] = getMousePos(canvas, e);
   }
 
   function getMousePos(canvas: HTMLCanvasElement, evt: MouseEvent) {
@@ -74,25 +59,21 @@
     ];
   }
 
-  function updateMousePos(e: MouseEvent) {
-    [mousePos.x, mousePos.y] = getMousePos(canvas, e);
-  }
-
-  function initSelectionPositions(e: MouseEvent) {
-    [selectionStartPos.x, selectionStartPos.y] = [mousePos.x, mousePos.y];
-    [selectionEndPos.x, selectionEndPos.y] = [mousePos.x, mousePos.y];
-  }
-
   function updateSelectionPos(e: MouseEvent) {
-    [selectionStartPos.x, selectionStartPos.y] = [
-      Math.min(selectionStartPos.x, mousePos.x),
-      Math.min(selectionStartPos.y, mousePos.y),
-    ];
+    currentSelection.expand(mousePos.x, mousePos.y);
+  }
 
-    [selectionEndPos.x, selectionEndPos.y] = [
-      Math.max(selectionEndPos.x, mousePos.x),
-      Math.max(selectionEndPos.y, mousePos.y),
-    ];
+  function onMouseDown(e: MouseEvent) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateCanvasPos();
+
+    initSelectionPositions(e);
+
+    draw(e);
+  }
+
+  function updateCanvasPos() {
+    [canvasPos.x, canvasPos.y] = getCanvasPos(ctx, mousePos.x, mousePos.y);
   }
 
   function getCanvasPos(
@@ -107,8 +88,17 @@
     return [x, y];
   }
 
-  function updateCanvasPos() {
-    [canvasPos.x, canvasPos.y] = getCanvasPos(ctx, mousePos.x, mousePos.y);
+  function initSelectionPositions(e: MouseEvent) {
+    currentSelection.setStartPoint(mousePos.x, mousePos.y);
+    currentSelection.setEndPoint(mousePos.x, mousePos.y);
+  }
+
+  function onMouseUp(e: MouseEvent) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    currentSelection.snapToGrid(CANVAS_SIZE, GRID_SIZE);
+
+    draw(e);
   }
 
   // https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
@@ -150,39 +140,7 @@
   }
 
   function drawSelection() {
-    const lineWidth = 5;
-    const [x, y, w, h] = getGridSelection(lineWidth);
-
-    if (w == 0 || h == 0) return;
-
-    ctx.beginPath();
-    ctx.lineWidth = lineWidth;
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "#c0392b";
-    ctx.rect(
-      x + lineWidth / 2,
-      y + lineWidth / 2,
-      w - lineWidth,
-      h - lineWidth
-    );
-    ctx.stroke();
-  }
-
-  function getGridSelection(lineWidth: number) {
-    const SNAP_VALUE = CANVAS_SIZE / GRID_SIZE;
-    const [x1, y1] = [
-      Math.floor(clampToGrid(selectionStartPos.x) / SNAP_VALUE) * SNAP_VALUE,
-      Math.floor(clampToGrid(selectionStartPos.y) / SNAP_VALUE) * SNAP_VALUE,
-    ];
-    const [x2, y2] = [
-      Math.ceil(clampToGrid(selectionEndPos.x) / SNAP_VALUE) * SNAP_VALUE,
-      Math.ceil(clampToGrid(selectionEndPos.y) / SNAP_VALUE) * SNAP_VALUE,
-    ];
-    return [x1, y1, x2 - x1, y2 - y1];
-  }
-
-  function clampToGrid(value: number, min = 0, max = CANVAS_SIZE) {
-    return Math.min(Math.max(value, min), max);
+    currentSelection.draw(ctx);
   }
 </script>
 
